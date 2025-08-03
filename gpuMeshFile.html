@@ -69,7 +69,7 @@
 
         // ✅ โหลดโมเดล OBJ
         const loader = new THREE.OBJLoader();
-        loader.load('parpu.obj', function (object) {
+        loader.load('https://newpkn.github.io/icg/gpuMeshFile', function (object) {
             // ตั้งค่า castShadow กับทุก mesh ใน object
             object.traverse(function (child) {
                 if (child.isMesh) {
