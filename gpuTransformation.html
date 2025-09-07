@@ -14,6 +14,14 @@
 <body>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
+        const keyState = {};
+        window.addEventListener('keydown', (event) => {
+        keyState[event.key.toLowerCase()] = true;
+    });
+
+    window.addEventListener('keyup', (event) => {
+        keyState[event.key.toLowerCase()] = false;
+    });
 
         const renderer = new THREE.WebGLRenderer();
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -83,11 +91,17 @@
             else if(event.key == 'ArrowDown'){
                 cube.position.y -=0.2;
             }
-            if(event.key == 'Arrowleft'){
-                cube.position.c -= 0.2;
+            if (keyState['w']) {
+            cube.position.z -= 0.2;
             }
-            else if(event.key == 'Arrowright'){
-                cube.position.x +=0.2;
+            if (keyState['s']) {
+            cube.position.z += 0.2;
+            }
+            if (keyState['a']) {
+            cube.position.x -= 0.2;
+            }
+            if (keyState['d']) {
+            cube.position.x += 0.2;
             }
         });
 
