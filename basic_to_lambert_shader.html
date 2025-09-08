@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <title>Basic Shader with Shadow • three.js r128</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>html,body{height:100%;margin:0} canvas{display:block}</style>
+
+  <!-- ไลบรารี three.js และ plugins -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/pmrem/PMREMGenerator.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dat.gui@0.7.7/build/dat.gui.min.js"></script>
+</head>
+<body>
+<script>
+  // Scene / Camera / Renderer
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x000000);
+
+  const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 100);
+  camera.position.set(1, 0.8, 2.2);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.0;
+  document.body.appendChild(renderer.domElement);
+
+  // ✅ เปิดระบบเงา
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+  // ✅ Load HDRI
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  pmrem.compileEquirectangularShader();
+
+  new THREE.RGBELoader()
+    .setDataType(THREE.UnsignedByteType)
+    .load('plac_wolnosci_4k.hdr', (hdrTex) => {
+      const envMap = pmrem.fromEquirectangular(hdrTex).texture;
+      scene.environment = envMap;
+      scene.background = envMap;
+      hdrTex.dispose();
+      pmrem.dispose();
+    });
+
+  // ✅ Ground
+  const groundGeo = new THREE.PlaneGeometry(20, 20);
+  const groundMat = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.8, metalness: 0.1 });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -0.001;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  // ✅ Directional Light
+  const light = new THREE.DirectionalLight(0xffffff, 1);
+  light.position.set(2, 3, 4);
+  light.castShadow = true;
+
+  // ปรับคุณภาพเงา
+  light.shadow.mapSize.width = 1024;
+  light.shadow.mapSize.height = 1024;
+  light.shadow.camera.near = 0.5;
+  light.shadow.camera.far = 20;
+
+  scene.add(light);
+
+  const ambient = new THREE.AmbientLight(0x404040, 1.5);
+  scene.add(ambient);
+
+  // ✅ GUI Light Control
+  const gui = new dat.GUI();
+  const lightFolder = gui.addFolder('Directional Light');
+  lightFolder.add(light.position, 'x', -10, 10).name('X');
+  lightFolder.add(light.position, 'y', -10, 10).name('Y');
+  lightFolder.add(light.position, 'z', -10, 10).name('Z');
+  lightFolder.add(light, 'intensity', 0, 5).name('Intensity');
+  lightFolder.open();
+
+  // ✅ Load Porsche Car
+  const gltfLoader = new THREE.GLTFLoader();
+  gltfLoader.load("https://raw.githubusercontent.com/newpkn/icg/main/porsche.glb", (gltf) => {
+    const car = gltf.scene;
+    car.scale.set(1, 1, 1);
+    car.position.set(0, 0, 0);
+    car.traverse(obj => {
+      if (obj.isMesh) {
+        obj.castShadow = true;
+        obj.receiveShadow = true;
+      }
+    });
+    scene.add(car);
+  });
+
+  // ✅ Load Building
+  gltfLoader.load("https://raw.githubusercontent.com/newpkn/icg/main/low_poly_building.glb", (gltf) => {
+    const building = gltf.scene;
+    building.scale.set(1, 1, 1);
+    building.position.set(3, 0, 3);
+    building.traverse(obj => {
+      if (obj.isMesh) {
+        obj.castShadow = true;
+        obj.receiveShadow = true;
+      }
+    });
+    scene.add(building);
+  });
+
+  // ✅ Resize
+  window.addEventListener('resize', () => {
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
+
+  // ✅ Render Loop
+  function animate() {
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+  }
+  animate();
+</script>
+</body>
+</html>
