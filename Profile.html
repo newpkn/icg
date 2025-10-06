@@ -170,7 +170,7 @@
     gltfLoader3.load("https://raw.githubusercontent.com/newpkn/icg/main/PF.glb", (gltf) => {
         name = gltf.scene;
         name.scale.set(0.4, 0.4, 0.4);
-        name.position.set(-55, 0.3, -2);
+        name.position.set(-54.5, 0.3, -2);
         name.traverse(obj => {
             if (obj.isMesh) {
                 obj.castShadow = true;
