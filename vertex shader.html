@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <title>Waving Flag Shader (three.js r128)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>html,body{height:100%;margin:0;background:#000} canvas{display:block}</style>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+<script>
+  // === Scene Setup ===
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 100);
+  camera.position.set(0, 0.5, 2.5);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  document.body.appendChild(renderer.domElement);
+
+  new THREE.OrbitControls(camera, renderer.domElement);
+
+  const axesHelper = new THREE.AxesHelper(3);
+  scene.add(axesHelper);
+
+  // === Uniforms ===
+  const uniforms = {
+    uTime: { value: 0.0 },
+    uLightDir: { value: new THREE.Vector3(0.3, 1.0, 0.6).normalize() }
+  };
+
+  // === Vertex Shader ===
+  const vert = `
+    uniform float uTime;
+    varying vec3 vNormal;
+    varying vec2 vUv;
+    void main() {
+      float PI = 3.141592653589793;
+      vNormal = normalize(normalMatrix * normal);
+      vUv = uv;
+
+      vec3 pos = position;
+
+      // โบกผืนธงแบบคลื่นแนวนอน
+      float wave = sin((pos.x * 3.0 + uTime * 2.0)) * 0.15;
+      pos.z += wave;
+      pos.y += sin(pos.x * 2.0 + uTime * 3.0) * 0.05;
+
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+    }
+  `;
+
+  // === Fragment Shader ===
+  const frag = `
+    precision mediump float;
+    varying vec3 vNormal;
+    varying vec2 vUv;
+    uniform vec3 uLightDir;
+
+    void main() {
+      float light = dot(normalize(vNormal), normalize(uLightDir)) * 0.5 + 0.5;
+
+      vec3 color;
+      if (vUv.y > 0.66) color = vec3(1.0, 0.0, 0.0); // แดง
+      else if (vUv.y > 0.33) color = vec3(1.0); // ขาว
+      else color = vec3(0.0, 0.0, 1.0); // น้ำเงิน
+
+      gl_FragColor = vec4(color * light, 1.0);
+    }
+  `;
+
+  // === Flag Geometry & Material ===
+  const geoFlag = new THREE.PlaneBufferGeometry(1.6, 1.0, 100, 50);
+  const matFlag = new THREE.ShaderMaterial({
+    vertexShader: vert,
+    fragmentShader: frag,
+    uniforms,
+    side: THREE.DoubleSide
+  });
+
+  const flag = new THREE.Mesh(geoFlag, matFlag);
+  flag.position.set(0, 0.5, 0);
+  flag.rotation.y = 90 * Math.PI / 180;
+  scene.add(flag);
+
+  // === Resize & Animate ===
+  addEventListener('resize', ()=>{
+    camera.aspect = innerWidth/innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
+
+  (function loop(){
+    uniforms.uTime.value = performance.now() / 1000;
+    renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  })();
+</script>
+</body>
+</html>
